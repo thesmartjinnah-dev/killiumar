@@ -931,7 +931,7 @@
                 
             } catch (error) {
                 console.error('Save error:', error);
-                showNotification('Failed to save. Make sure you have set up the Google Apps Script URL.', 'error');
+                showNotification('Failed to save. Make sure you have set up the Apps Script URL.', 'error');
             }
         }
 
@@ -943,7 +943,7 @@
             
             const index = document.getElementById('teacherIndex').value;
             
-            showNotification('Deleting from Google Sheets...', 'success');
+            showNotification('Deleting from Record...', 'success');
             
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
