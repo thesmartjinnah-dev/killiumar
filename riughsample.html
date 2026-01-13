@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Directory System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #312e81 50%, #0f172a 100%);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div id="app"></div>
+
+    <script>
+        // Application State
+        const state = {
+            isLoggedIn: false,
+            currentView: 'login',
+            selectedSchool: null,
+            selectedTeacher: null,
+            isEditing: false,
+            searchQuery: '',
+            showAddModal: false,
+            schools: [
+                { id: 1, name: "Sunrise Academy", location: "Karachi", principal: "Dr. Ahmed Khan", contact: "+92-300-1234567", established: 2005 },
+                { id: 2, name: "Green Valley School", location: "Lahore", principal: "Ms. Sarah Ahmed", contact: "+92-301-2345678", established: 2008 },
+                { id: 3, name: "Bright Future Academy", location: "Islamabad", principal: "Mr. Hassan Ali", contact: "+92-302-3456789", established: 2010 },
+                { id: 4, name: "Modern Education Center", location: "Karachi", principal: "Dr. Fatima Noor", contact: "+92-303-4567890", established: 2012 },
+                { id: 5, name: "Excellence Public School", location: "Lahore", principal: "Mr. Bilal Khan", contact: "+92-304-5678901", established: 2007 },
+                { id: 6, name: "Future Stars School", location: "Islamabad", principal: "Ms. Zainab Ali", contact: "+92-305-6789012", established: 2009 },
+                { id: 7, name: "Knowledge Academy", location: "Karachi", principal: "Dr. Usman Shah", contact: "+92-306-7890123", established: 2011 }
+            ],
+            teachers: {
+                1: [
+                    { id: 1, name: "Sarah Ahmed", subject: "Mathematics", experience: "8 years", qualification: "M.Sc Mathematics", phone: "+92-310-1234567", email: "sarah.ahmed@sunrise.edu", salary: "Rs. 80,000", joiningDate: "2016-01-15" },
+                    { id: 2, name: "Ahmed Khan", subject: "Physics", experience: "5 years", qualification: "M.Sc Physics", phone: "+92-311-2345678", email: "ahmed.khan@sunrise.edu", salary: "Rs. 65,000", joiningDate: "2019-03-20" },
+                    { id: 3, name: "Fatima Noor", subject: "Chemistry", experience: "6 years", qualification: "M.Phil Chemistry", phone: "+92-312-3456789", email: "fatima.noor@sunrise.edu", salary: "Rs. 70,000", joiningDate: "2018-08-10" }
+                ],
+                2: [
+                    { id: 4, name: "Hassan Ali", subject: "English", experience: "10 years", qualification: "MA English", phone: "+92-313-4567890", email: "hassan.ali@greenvalley.edu", salary: "Rs. 85,000", joiningDate: "2014-02-01" },
+                    { id: 5, name: "Ayesha Malik", subject: "Biology", experience: "7 years", qualification: "M.Sc Biology", phone: "+92-314-5678901", email: "ayesha.malik@greenvalley.edu", salary: "Rs. 75,000", joiningDate: "2017-06-15" }
+                ],
+                3: [
+                    { id: 6, name: "Ali Raza", subject: "Computer Science", experience: "4 years", qualification: "BS Computer Science", phone: "+92-315-6789012", email: "ali.raza@bright.edu", salary: "Rs. 60,000", joiningDate: "2020-01-10" }
+                ]
+            }
+        };
+
+        // Icon SVGs
+        const icons = {
+            graduationCap: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
+            logout: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+            school: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l18 0"/><path d="M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7"/><path d="M3 5h18v2H3z"/><path d="M6 21V10"/><path d="M12 21V10"/><path d="M18 21V10"/></svg>',
+            mapPin: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+            chevronRight: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+            search: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
+            plus: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+            edit: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+            trash: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+            save: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+            x: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+            mail: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+            phone: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+            users: '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+        };
+
+        // Login View
+        function renderLogin() {
+            return `
+                <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden gradient-bg">
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.15),transparent_50%),radial-gradient(circle_at_70%_70%,rgba(168,85,247,0.15),transparent_50%)]"></div>
+                    
+                    <div class="relative z-10 w-full max-w-md animate-fade-in">
+                        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/20">
+                            <div class="text-center mb-8">
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-6 shadow-lg transform hover:scale-105 transition-transform">
+                                    ${icons.graduationCap}
+                                </div>
+                                <h1 class="text-4xl font-bold gradient-text mb-2">Teacher Directory</h1>
+                                <p class="text-slate-600 text-lg">School Management System</p>
+                            </div>
+
+                            <form onsubmit="handleLogin(event)" class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Username</label>
+                                    <input
+                                        type="text"
+                                        id="username"
+                                        class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-all"
+                                        placeholder="Enter username"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                                    <input
+                                        type="password"
+                                        id="password"
+                                        class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-all"
+                                        placeholder="Enter password"
+                                    />
+                                </div>
+                                
+                                <div id="error-message" class="hidden bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium"></div>
+                                
+                                <button
+                                    type="submit"
+                                    class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                                >
+                                    Sign In
+                                </button>
+                                
+                                <p class="text-center text-sm text-slate-500 mt-4">
+                                    Demo: admin / admin123
+                                </p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Schools Dashboard
+        function renderSchoolsDashboard() {
+            return `
+                <div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
+                    <header class="bg-white border-b border-slate-200 shadow-sm">
+                        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                    ${icons.graduationCap}
+                                </div>
+                                <h1 class="text-2xl font-bold gradient-text">Teacher Directory</h1>
+                            </div>
+                            <button onclick="handleLogout()" class="flex items-center gap-2 text-slate-600 hover:text-red-600 transition-colors font-medium">
+                                ${icons.logout}
+                                Logout
+                            </button>
+                        </div>
+                    </header>
+
+                    <div class="max-w-7xl mx-auto p-6">
+                        <div class="mb-8">
+                            <h2 class="text-3xl font-bold text-slate-800 mb-2">Schools Directory</h2>
+                            <p class="text-slate-600">Manage ${state.schools.length} schools and their teaching staff</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${state.schools.map(school => `
+                                <div onclick="selectSchool(${school.id})" class="bg-white rounded-xl shadow-sm border-2 border-slate-200 hover:border-indigo-400 hover:shadow-xl transition-all cursor-pointer group overflow-hidden">
+                                    <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white relative overflow-hidden">
+                                        <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                                        <div class="mb-3 group-hover:scale-110 transition-transform">${icons.school}</div>
+                                        <h3 class="text-xl font-bold mb-1">${school.name}</h3>
+                                        <p class="text-indigo-100 flex items-center gap-1">
+                                            ${icons.mapPin}
+                                            ${school.location}
+                                        </p>
+                                    </div>
+                                    <div class="p-6">
+                                        <div class="space-y-3">
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-500">Principal</span>
+                                                <span class="font-semibold text-slate-800">${school.principal}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-500">Teachers</span>
+                                                <span class="font-semibold text-indigo-600">${state.teachers[school.id]?.length || 0}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-500">Contact</span>
+                                                <span class="font-semibold text-slate-800 text-sm">${school.contact}</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-indigo-600 font-medium group-hover:translate-x-2 transition-transform">
+                                            <span>View Teachers</span>
+                                            ${icons.chevronRight}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Teachers List View
+        function renderTeachersList() {
+            const school = state.selectedSchool;
+            const schoolTeachers = state.teachers[school.id] || [];
+            const filteredTeachers = schoolTeachers.filter(t =>
+                t.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                t.subject.toLowerCase().includes(state.searchQuery.toLowerCase())
+            );
+
+            return `
+                <div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
+                    <header class="bg-white border-b border-slate-200 shadow-sm">
+                        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <button onclick="backToSchools()" class="text-slate-600 hover:text-indigo-600 transition-colors font-medium">
+                                    ← Back to Schools
+                                </button>
+                                <div class="h-6 w-px bg-slate-300"></div>
+                                <h1 class="text-2xl font-bold text-slate-800">${school.name}</h1>
+                            </div>
+                            <button onclick="handleLogout()" class="flex items-center gap-2 text-slate-600 hover:text-red-600 transition-colors">
+                                ${icons.logout}
+                                Logout
+                            </button>
+                        </div>
+                    </header>
+
+                    <div class="max-w-7xl mx-auto p-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                            <div class="grid grid-cols-4 gap-4 text-center">
+                                <div>
+                                    <p class="text-slate-500 text-sm mb-1">Location</p>
+                                    <p class="font-semibold text-slate-800">${school.location}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-sm mb-1">Principal</p>
+                                    <p class="font-semibold text-slate-800">${school.principal}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-sm mb-1">Total Teachers</p>
+                                    <p class="font-semibold text-slate-800">${schoolTeachers.length}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-sm mb-1">Established</p>
+                                    <p class="font-semibold text-slate-800">${school.established}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-2xl font-bold text-slate-800">Teachers</h2>
+                                <button onclick="showAddTeacherModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium">
+                                    ${icons.plus}
+                                    Add Teacher
+                                </button>
+                            </div>
+
+                            <div class="mb-6">
+                                <div class="relative">
+                                    <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">${icons.search}</div>
+                                    <input
+                                        type="text"
+                                        placeholder="Search teachers..."
+                                        oninput="handleSearch(event)"
+                                        class="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            ${filteredTeachers.length > 0 ? `
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    ${filteredTeachers.map(teacher => `
+                                        <div onclick="selectTeacher(${teacher.id})" class="bg-gradient-to-br from-slate-50 to-indigo-50 p-5 rounded-xl border-2 border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all cursor-pointer group">
+                                            <div class="flex justify-between items-start mb-3">
+                                                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
+                                                    ${teacher.name.charAt(0)}
+                                                </div>
+                                                <div class="text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all">${icons.chevronRight}</div>
+                                            </div>
+                                            <h3 class="font-bold text-slate-800 mb-1">${teacher.name}</h3>
+                                            <p class="text-indigo-600 font-medium mb-2">${teacher.subject}</p>
+                                            <p class="text-slate-500 text-sm">${teacher.experience} experience</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="text-center py-12 text-slate-500">
+                                    ${icons.users}
+                                    <p class="mt-4">No teachers found</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Teacher Details View
+        function renderTeacherDetails() {
+            const teacher = state.selectedTeacher;
+            const school = state.selectedSchool;
+
+            if (state.isEditing) {
+                return `
+                    <div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
+                        <div class="max-w-5xl mx-auto">
+                            <button onclick="cancelEdit()" class="mb-6 flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-medium">
+                                ← Back to Teacher
+                            </button>
+                            
+                            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+                                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 text-white">
+                                    <h2 class="text-3xl font-bold">Edit Teacher Information</h2>
+                                </div>
+
+                                <form onsubmit="saveEdit(event)" class="p-8 bg-slate-50">
+                                    <div class="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Name</label>
+                                            <input type="text" id="edit-name" value="${teacher.name}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Subject</label>
+                                            <input type="text" id="edit-subject" value="${teacher.subject}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                                            <input type="email" id="edit-email" value="${teacher.email}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
+                                            <input type="text" id="edit-phone" value="${teacher.phone}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Qualification</label>
+                                            <input type="text" id="edit-qualification" value="${teacher.qualification}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Experience</label>
+                                            <input type="text" id="edit-experience" value="${teacher.experience}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Salary</label>
+                                            <input type="text" id="edit-salary" value="${teacher.salary}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Joining Date</label>
+                                            <input type="date" id="edit-joiningDate" value="${teacher.joiningDate}" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-3 mt-6">
+                                        <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium">
+                                            ${icons.save}
+                                            Save Changes
+                                        </button>
+                                        <button type="button" onclick="cancelEdit()" class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors font-medium">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
+                    <div class="max-w-5xl mx-auto">
+                        <button onclick="backToTeachers()" class="mb-6 flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-medium">
+                            ← Back to Teachers
+                        </button>
+                        
+                        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+                            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 text-white">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h2 class="text-3xl font-bold mb-2">${teacher.name}</h2>
+                                        <p class="text-indigo-100 text-lg">${teacher.subject} Teacher</p>
+                                        <p class="text-indigo-200 mt-1">${school.name}</p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="startEdit()" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all">
+                                            ${icons.edit}
+                                            Edit
+                                        </button>
+                                        <button onclick="deleteTeacher(${teacher.id})" class="bg-red-500/20 hover:bg-red-500/30 backdrop-blur-sm text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all">
+                                            ${icons.trash}
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-8">
+                                <h3 class="text-xl font-bold text-slate-800 mb-6">Teacher Information</h3>
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="bg-slate-50 p-4 rounded-lg">
+                                        <p class="text-sm text-slate-500 mb-1">Employee ID</p>
+                                        <p class="font-semibold text-slate-800">TCH-${teacher.id.toString().padStart(4, '0')}</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-lg">
+                                        <p class="text-sm text-slate-500 mb-1">Experience</p>
+                                        <p class="font-semibold text-slate-800">${teacher.experience}</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-lg">
+                                        <p class="text-sm text-slate-500 mb-1">Qualification</p>
+                                        <p class="font-semibold text-slate-800">${teacher.qualification}</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-lg">
+                                        <p class="text-sm text-slate-500 mb-1">Joining Date</p>
+                                        <p class="font-semibold text-slate-800">${teacher.joiningDate}</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-lg">
+                                        <p class="text-sm text-slate-500 mb-1 flex items-center gap-1">
+                                            ${icons.mail} Email
+                                        </p>
+                                        <p class="font-semibold text-slate-800">${teacher.email}</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-lg">
+                                        <p class="text-sm text-slate-500 mb-1 flex items-center gap-1">
+                                            ${icons.phone} Phone
+                                        </p>
+                                        <p class="font-semibold text-slate-800">${teacher.phone}</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-lg col-span-2">
+                                        <p class="text-sm text-slate-500 mb-1">Salary</p>
+                                        <p class="font-semibold text-slate-800 text-lg">${teacher.salary}/month</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Add Teacher Modal
+        function renderAddTeacherModal() {
+            if (!state.showAddModal) return '';
+            
+            return `
+                <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white flex justify-between items-center">
+                            <h3 class="text-2xl font-bold">Add New Teacher</h3>
+                            <button onclick="closeAddModal()" class="hover:bg-white/20 p-2 rounded-lg transition-colors">
+                                ${icons.x}
+                            </button>
+                        </div>
+                        <form onsubmit="addTeacher(event)" class="p-6">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Name *</label>
+                                    <input type="text" id="add-name" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Subject *</label>
+                                    <input type="text" id="add-subject" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Email *</label>
+                                    <input type="email" id="add-email" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Phone *</label>
+                                    <input type="text" id="add-phone" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Qualification *</label>
+                                    <input type="text" id="add-qualification" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Experience *</label>
+                                    <input type="text" id="add-experience" placeholder="e.g., 5 years" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Salary *</label>
+                                    <input type="text" id="add-salary" placeholder="e.g., Rs. 50,000" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Joining Date *</label>
+                                    <input type="date" id="add-joiningDate" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                </div>
+                            </div>
+                            <div class="flex gap-3 mt-6">
+                                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium">
+                                    ${icons.plus}
+                                    Add Teacher
+                                </button>
+                                <button type="button" onclick="closeAddModal()" class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors font-medium">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Event Handlers
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'admin' && password === 'admin123') {
+                state.isLoggedIn = true;
+                state.currentView = 'schools';
+                render();
+            } else {
+                const errorDiv = document.getElementById('error-message');
+                errorDiv.textContent = 'Invalid credentials';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            state.isLoggedIn = false;
+            state.currentView = 'login';
+            state.selectedSchool = null;
+            state.selectedTeacher = null;
+            render();
+        }
+
+        function selectSchool(schoolId) {
+            state.selectedSchool = state.schools.find(s => s.id === schoolId);
+            state.currentView = 'teachers';
+            render();
+        }
+
+        function backToSchools() {
+            state.selectedSchool = null;
+            state.searchQuery = '';
+            state.currentView = 'schools';
+            render();
+        }
+
+        function selectTeacher(teacherId) {
+            const teachers = state.teachers[state.selectedSchool.id];
+            state.selectedTeacher = teachers.find(t => t.id === teacherId);
+            state.currentView = 'teacher-details';
+            render();
+        }
+
+        function backToTeachers() {
+            state.selectedTeacher = null;
+            state.isEditing = false;
+            state.currentView = 'teachers';
+            render();
+        }
+
+        function handleSearch(e) {
+            state.searchQuery = e.target.value;
+            render();
+        }
+
+        function showAddTeacherModal() {
+            state.showAddModal = true;
+            render();
+        }
+
+        function closeAddModal() {
+            state.showAddModal = false;
+            render();
+        }
+
+        function addTeacher(e) {
+            e.preventDefault();
+            const schoolTeachers = state.teachers[state.selectedSchool.id] || [];
+            const newId = Math.max(...schoolTeachers.map(t => t.id), 0) + 1;
+            
+            const newTeacher = {
+                id: newId,
+                name: document.getElementById('add-name').value,
+                subject: document.getElementById('add-subject').value,
+                email: document.getElementById('add-email').value,
+                phone: document.getElementById('add-phone').value,
+                qualification: document.getElementById('add-qualification').value,
+                experience: document.getElementById('add-experience').value,
+                salary: document.getElementById('add-salary').value,
+                joiningDate: document.getElementById('add-joiningDate').value
+            };
+            
+            state.teachers[state.selectedSchool.id].push(newTeacher);
+            state.showAddModal = false;
+            render();
+        }
+
+        function startEdit() {
+            state.isEditing = true;
+            render();
+        }
+
+        function cancelEdit() {
+            state.isEditing = false;
+            render();
+        }
+
+        function saveEdit(e) {
+            e.preventDefault();
+            const updatedTeacher = {
+                ...state.selectedTeacher,
+                name: document.getElementById('edit-name').value,
+                subject: document.getElementById('edit-subject').value,
+                email: document.getElementById('edit-email').value,
+                phone: document.getElementById('edit-phone').value,
+                qualification: document.getElementById('edit-qualification').value,
+                experience: document.getElementById('edit-experience').value,
+                salary: document.getElementById('edit-salary').value,
+                joiningDate: document.getElementById('edit-joiningDate').value
+            };
+            
+            const teachers = state.teachers[state.selectedSchool.id];
+            const index = teachers.findIndex(t => t.id === state.selectedTeacher.id);
+            teachers[index] = updatedTeacher;
+            state.selectedTeacher = updatedTeacher;
+            state.isEditing = false;
+            render();
+        }
+
+        function deleteTeacher(teacherId) {
+            if (confirm('Are you sure you want to delete this teacher?')) {
+                state.teachers[state.selectedSchool.id] = state.teachers[state.selectedSchool.id].filter(t => t.id !== teacherId);
+                state.selectedTeacher = null;
+                state.currentView = 'teachers';
+                render();
+            }
+        }
+
+        // Render Function
+        function render() {
+            const app = document.getElementById('app');
+            let content = '';
+            
+            if (!state.isLoggedIn) {
+                content = renderLogin();
+            } else if (state.currentView === 'schools') {
+                content = renderSchoolsDashboard();
+            } else if (state.currentView === 'teachers') {
+                content = renderTeachersList();
+            } else if (state.currentView === 'teacher-details') {
+                content = renderTeacherDetails();
+            }
+            
+            app.innerHTML = content + renderAddTeacherModal();
+        }
+
+        // Initialize
+        render();
+    </script>
+</body>
+</html>
